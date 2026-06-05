@@ -1,0 +1,22 @@
+name: Callee Reusable Workflow
+
+on:
+  workflow_call:
+    secrets:
+      TEST_SECRET_INHERIT:
+        required: false
+
+jobs:
+  callee:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print received secrets
+        run: |
+          echo "=== CALLEE WORKFLOW SECRET TEST ==="
+          echo "TEST_SECRET_INHERIT is set: ${{ secrets.TEST_SECRET_INHERIT != '' }}"
+          echo "TEST_SECRET_INHERIT value hash: $(echo -n '${{ secrets.TEST_SECRET_INHERIT }}' | sha256sum)"
+          echo "GITHUB_TOKEN prefix: ${GITHUB_TOKEN:0:10}"
+          echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
+          echo "=== End ==="
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
